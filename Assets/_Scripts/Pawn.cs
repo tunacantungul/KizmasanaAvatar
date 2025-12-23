@@ -6,6 +6,7 @@ public class Pawn : MonoBehaviour
     {
         Base,
         OnBoard,
+        InHomePath,
         Finished
     }
 

@@ -14,6 +14,7 @@ public class Board : MonoBehaviour
     public List<Tile> MainPath { get; private set; }
     public List<List<Tile>> HomePaths { get; private set; }
     public Dictionary<Tile.PlayerType, Tile> StartTiles { get; private set; }
+    public Tile GoalTile { get; private set; }
 
     private readonly Tile.PlayerType[] playerTypes = {
         Tile.PlayerType.FireNation, Tile.PlayerType.EarthKingdom, Tile.PlayerType.AirNomads, Tile.PlayerType.WaterTribe
@@ -47,7 +48,6 @@ public class Board : MonoBehaviour
         for (int x = 0; x < BoardSize; x++) {
             for (int z = 0; z < BoardSize; z++) {
                 var pos = new Vector3(x, 0, z);
-                var coord = new Vector2Int(x, z);
 
                 if (IsPath(x, z)) {
                     CreateTile(pos, pathMaterial, $"Path {x},{z}", Tile.TileType.Path, Tile.PlayerType.None);
@@ -57,28 +57,45 @@ public class Board : MonoBehaviour
                 }
             }
         }
-        CreateHomePathsAndGoal();
+        // After creating the base path layout, 'upgrade' the relevant tiles to be home paths and goal.
+        ConfigureHomePathsAndGoal();
     }
 
-    private void CreateHomePathsAndGoal()
+    private void ConfigureHomePathsAndGoal()
     {
         int center = BoardSize / 2;
         int pathStart = (BoardSize - PathWidth) / 2;
 
         for (int p = 0; p < 4; p++) {
             var playerType = playerTypes[p];
+            var material = playerMaterials[p];
             for (int i = 1; i < pathStart; i++) {
-                Vector3 pos;
-                if (p == 0) pos = new Vector3(center, 0, i); // Fire
-                else if (p == 1) pos = new Vector3(i, 0, center); // Earth
-                else if (p == 2) pos = new Vector3(center, 0, BoardSize - 1 - i); // Air
-                else pos = new Vector3(BoardSize - 1 - i, 0, center); // Water
+                Vector2Int coord;
+                if (p == 0) coord = new Vector2Int(center, i); // Fire
+                else if (p == 1) coord = new Vector2Int(i, center); // Earth
+                else if (p == 2) coord = new Vector2Int(center, BoardSize - 1 - i); // Air
+                else coord = new Vector2Int(BoardSize - 1 - i, center); // Water
 
-                CreateTile(pos, playerMaterials[p], $"{playerType} Home Path", Tile.TileType.Home, playerType);
+                if (_tileMap.TryGetValue(coord, out Tile tileToUpdate)) {
+                    tileToUpdate.GetComponent<Renderer>().material = material;
+                    tileToUpdate.name = $"{playerType} Home Path";
+                    tileToUpdate.type = Tile.TileType.Home;
+                    tileToUpdate.owner = playerType;
+                }
             }
         }
-        CreateTile(new Vector3(center, 0, center), baseMaterial, "Goal", Tile.TileType.Goal, Tile.PlayerType.None);
+        
+        // Configure Goal Tile
+        var goalCoord = new Vector2Int(center, center);
+        if (_tileMap.TryGetValue(goalCoord, out Tile goalTile))
+        {
+            goalTile.GetComponent<Renderer>().material = baseMaterial;
+            goalTile.name = "Goal";
+            goalTile.type = Tile.TileType.Goal;
+            GoalTile = goalTile;
+        }
     }
+
 
     private Tile CreateTile(Vector3 position, Material material, string name, Tile.TileType type, Tile.PlayerType owner)
     {
@@ -144,9 +161,20 @@ public class Board : MonoBehaviour
     }
 
     private bool IsPath(int x, int z) {
-        int cs = (BoardSize - PathWidth) / 2; // centerStart
-        int ce = cs + PathWidth - 1; // centerEnd
-        return (x >= cs && x <= ce) || (z >= cs && z <= ce);
+        int cs = (BoardSize - PathWidth) / 2; // centerStart, e.g. 6
+        int ce = cs + PathWidth - 1; // centerEnd, e.g. 8
+
+        bool isVerticalArm = (x >= cs && x <= ce);
+        bool isHorizontalArm = (z >= cs && z <= ce);
+
+        // Exclude the 6x6 corner areas (player bases)
+        if (!isVerticalArm && !isHorizontalArm) return false;
+        
+        // Exclude the 3x3 center block which contains the goal and the final home tiles.
+        // These are configured separately.
+        if (isVerticalArm && isHorizontalArm) return false;
+
+        return true;
     }
 
     private bool IsPlayerBase(int x, int z, out int playerIndex) {

@@ -1,21 +1,19 @@
 using UnityEngine;
-using UnityEngine;
-using UnityEngine;
 using UnityEngine.UI;
-using TMPro;
 
 public class Dice : MonoBehaviour
 {
     public Button rollButton;
-    public TextMeshProUGUI resultText;
     private GameManager _gameManager;
+    private UIManager _uiManager;
 
     void Start()
     {
         _gameManager = FindObjectOfType<GameManager>();
+        _uiManager = FindObjectOfType<UIManager>();
+        
         if (rollButton != null)
         {
-            // Point the listener to a void method
             rollButton.onClick.AddListener(RollForButton);
         }
     }
@@ -25,9 +23,9 @@ public class Dice : MonoBehaviour
     {
         int result = Random.Range(1, 7);
         
-        if (resultText != null)
+        if (_uiManager != null)
         {
-            resultText.text = "Zar: " + result;
+            _uiManager.UpdateDiceResult("Zar: " + result);
         }
 
         if (_gameManager != null)
@@ -40,5 +38,6 @@ public class Dice : MonoBehaviour
         }
     }
 }
+
 
 
