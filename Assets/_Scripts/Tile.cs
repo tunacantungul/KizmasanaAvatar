@@ -1,5 +1,7 @@
 using UnityEngine;
 
+using UnityEngine;
+
 public class Tile : MonoBehaviour
 {
     public enum PlayerType
@@ -22,5 +24,7 @@ public class Tile : MonoBehaviour
     [Header("Tile Properties")]
     public PlayerType owner;
     public TileType type;
-    public int tileId = -1;
+    public int x;
+    public int z;
 }
+

@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System.Linq;
 
 public class Board : MonoBehaviour
 {
@@ -9,13 +10,16 @@ public class Board : MonoBehaviour
     public Material pathMaterial;
     public Material[] playerMaterials; // 0: Fire, 1: Earth, 2: Air, 3: Water
 
-    private readonly List<GameObject> boardTiles = new List<GameObject>();
+    // Pathing Data
+    public List<Tile> MainPath { get; private set; }
+    public List<List<Tile>> HomePaths { get; private set; }
+    public Dictionary<Tile.PlayerType, Tile> StartTiles { get; private set; }
+
     private readonly Tile.PlayerType[] playerTypes = {
-        Tile.PlayerType.FireNation,
-        Tile.PlayerType.EarthKingdom,
-        Tile.PlayerType.AirNomads,
-        Tile.PlayerType.WaterTribe
+        Tile.PlayerType.FireNation, Tile.PlayerType.EarthKingdom, Tile.PlayerType.AirNomads, Tile.PlayerType.WaterTribe
     };
+
+    private Dictionary<Vector2Int, Tile> _tileMap;
 
     // Board layout constants
     private const int BoardSize = 15;
@@ -23,139 +27,135 @@ public class Board : MonoBehaviour
 
     public void GenerateBoard()
     {
-        // Clear existing board if any
-        foreach (var tile in boardTiles)
-        {
-            if (tile != null) Destroy(tile);
+        // Initialize collections
+        _tileMap = new Dictionary<Vector2Int, Tile>();
+        MainPath = new List<Tile>(52);
+        HomePaths = new List<List<Tile>> { new List<Tile>(), new List<Tile>(), new List<Tile>(), new List<Tile>() };
+        StartTiles = new Dictionary<Tile.PlayerType, Tile>();
+
+        // Destroy previous board if any
+        foreach (Transform child in transform) {
+            Destroy(child.gameObject);
         }
-        boardTiles.Clear();
 
         CreateBoardLayout();
+        PopulatePaths();
     }
 
     private void CreateBoardLayout()
     {
-        for (int x = 0; x < BoardSize; x++)
-        {
-            for (int z = 0; z < BoardSize; z++)
-            {
-                // Is this position part of the path?
-                if (IsPath(x, z))
-                {
-                    Vector3 position = new Vector3(x, 0, z);
-                    CreateTile(position, pathMaterial, "Path Tile", Tile.TileType.Path, Tile.PlayerType.None);
-                }
-                // Is this position a player base?
-                else if (IsPlayerBase(x, z, out int playerIndex))
-                {
-                    Vector3 position = new Vector3(x, 0, z);
+        for (int x = 0; x < BoardSize; x++) {
+            for (int z = 0; z < BoardSize; z++) {
+                var pos = new Vector3(x, 0, z);
+                var coord = new Vector2Int(x, z);
+
+                if (IsPath(x, z)) {
+                    CreateTile(pos, pathMaterial, $"Path {x},{z}", Tile.TileType.Path, Tile.PlayerType.None);
+                } else if (IsPlayerBase(x, z, out int playerIndex)) {
                     var playerType = playerTypes[playerIndex];
-                    CreateTile(position, playerMaterials[playerIndex], $"{playerType} Base", Tile.TileType.Base, playerType);
+                    CreateTile(pos, playerMaterials[playerIndex], $"{playerType} Base", Tile.TileType.Base, playerType);
                 }
             }
         }
-
-        CreateHomePaths();
-        // Optionally create the central goal tile
-        CreateTile(new Vector3(BoardSize / 2, 0, BoardSize / 2), baseMaterial, "Goal", Tile.TileType.Goal, Tile.PlayerType.None);
+        CreateHomePathsAndGoal();
     }
 
-    private void CreateTile(Vector3 position, Material material, string name, Tile.TileType type, Tile.PlayerType owner)
+    private void CreateHomePathsAndGoal()
     {
-        GameObject tileObj = Instantiate(tilePrefab, position, Quaternion.identity, transform);
-        tileObj.name = name;
-        
-        Renderer renderer = tileObj.GetComponent<Renderer>();
-        if (renderer != null)
-        {
-            renderer.material = material;
-        }
+        int center = BoardSize / 2;
+        int pathStart = (BoardSize - PathWidth) / 2;
 
-        Tile tileComp = tileObj.AddComponent<Tile>();
+        for (int p = 0; p < 4; p++) {
+            var playerType = playerTypes[p];
+            for (int i = 1; i < pathStart; i++) {
+                Vector3 pos;
+                if (p == 0) pos = new Vector3(center, 0, i); // Fire
+                else if (p == 1) pos = new Vector3(i, 0, center); // Earth
+                else if (p == 2) pos = new Vector3(center, 0, BoardSize - 1 - i); // Air
+                else pos = new Vector3(BoardSize - 1 - i, 0, center); // Water
+
+                CreateTile(pos, playerMaterials[p], $"{playerType} Home Path", Tile.TileType.Home, playerType);
+            }
+        }
+        CreateTile(new Vector3(center, 0, center), baseMaterial, "Goal", Tile.TileType.Goal, Tile.PlayerType.None);
+    }
+
+    private Tile CreateTile(Vector3 position, Material material, string name, Tile.TileType type, Tile.PlayerType owner)
+    {
+        var tileObj = Instantiate(tilePrefab, position, Quaternion.identity, transform);
+        tileObj.name = name;
+        tileObj.GetComponent<Renderer>().material = material;
+
+        var tileComp = tileObj.AddComponent<Tile>();
         tileComp.type = type;
         tileComp.owner = owner;
+        tileComp.x = (int)position.x;
+        tileComp.z = (int)position.z;
 
-        boardTiles.Add(tileObj);
+        _tileMap[new Vector2Int(tileComp.x, tileComp.z)] = tileComp;
+        return tileComp;
     }
 
-    private bool IsPath(int x, int z)
+    private void PopulatePaths()
     {
-        int centerStart = (BoardSize - PathWidth) / 2; // 6
-        int centerEnd = centerStart + PathWidth - 1; // 8
+        // Manually define the Ludo path sequence based on board coordinates
+        var pathCoords = new List<Vector2Int> {
+            // Fire Path Segment
+            new Vector2Int(6, 1), new Vector2Int(6, 2), new Vector2Int(6, 3), new Vector2Int(6, 4), new Vector2Int(6, 5),
+            new Vector2Int(5, 6), new Vector2Int(4, 6), new Vector2Int(3, 6), new Vector2Int(2, 6), new Vector2Int(1, 6), new Vector2Int(0, 6),
+            new Vector2Int(0, 7),
+            // Earth Path Segment
+            new Vector2Int(1, 8), new Vector2Int(2, 8), new Vector2Int(3, 8), new Vector2Int(4, 8), new Vector2Int(5, 8),
+            new Vector2Int(6, 9), new Vector2Int(6, 10), new Vector2Int(6, 11), new Vector2Int(6, 12), new Vector2Int(6, 13), new Vector2Int(6, 14),
+            new Vector2Int(7, 14),
+            // Air Path Segment
+            new Vector2Int(8, 13), new Vector2Int(8, 12), new Vector2Int(8, 11), new Vector2Int(8, 10), new Vector2Int(8, 9),
+            new Vector2Int(9, 8), new Vector2Int(10, 8), new Vector2Int(11, 8), new Vector2Int(12, 8), new Vector2Int(13, 8), new Vector2Int(14, 8),
+            new Vector2Int(14, 7),
+            // Water Path Segment
+            new Vector2Int(13, 6), new Vector2Int(12, 6), new Vector2Int(11, 6), new Vector2Int(10, 6), new Vector2Int(9, 6),
+            new Vector2Int(8, 5), new Vector2Int(8, 4), new Vector2Int(8, 3), new Vector2Int(8, 2), new Vector2Int(8, 1), new Vector2Int(8, 0),
+            new Vector2Int(7, 0)
+        };
 
-        if ((x >= centerStart && x <= centerEnd) || (z >= centerStart && z <= centerEnd))
-        {
-             // Exclude the center square which is the goal
-            if (x >= centerStart && x <= centerEnd && z >= centerStart && z <= centerEnd)
-            {
-                return false;
-            }
-            return true;
+        foreach (var coord in pathCoords) {
+            MainPath.Add(_tileMap[coord]);
         }
 
-        return false;
+        // Define Start Tiles and Home Paths from the map
+        StartTiles[Tile.PlayerType.FireNation] = _tileMap[new Vector2Int(6, 1)];
+        StartTiles[Tile.PlayerType.EarthKingdom] = _tileMap[new Vector2Int(1, 8)];
+        StartTiles[Tile.PlayerType.AirNomads] = _tileMap[new Vector2Int(8, 13)];
+        StartTiles[Tile.PlayerType.WaterTribe] = _tileMap[new Vector2Int(13, 6)];
+
+        HomePaths[0] = GetPath(new Vector2Int(7,1), new Vector2Int(7,6), true).OrderBy(t => t.z).ToList(); // Fire
+        HomePaths[1] = GetPath(new Vector2Int(1,7), new Vector2Int(6,7), true).OrderBy(t => t.x).ToList(); // Earth
+        HomePaths[2] = GetPath(new Vector2Int(7,9), new Vector2Int(7,14), true).OrderByDescending(t => t.z).ToList(); // Air
+        HomePaths[3] = GetPath(new Vector2Int(9,7), new Vector2Int(14,7), true).OrderByDescending(t => t.x).ToList(); // Water
     }
 
-    private bool IsPlayerBase(int x, int z, out int playerIndex)
+    private List<Tile> GetPath(Vector2Int start, Vector2Int end, bool isHomePath)
     {
-        int cornerSize = (BoardSize - PathWidth) / 2; // 6x6 corners
+        return _tileMap.Values.Where(t => 
+            t.x >= start.x && t.x <= end.x && 
+            t.z >= start.y && t.z <= end.y &&
+            (!isHomePath || t.type == Tile.TileType.Home)
+        ).ToList();
+    }
+
+    private bool IsPath(int x, int z) {
+        int cs = (BoardSize - PathWidth) / 2; // centerStart
+        int ce = cs + PathWidth - 1; // centerEnd
+        return (x >= cs && x <= ce) || (z >= cs && z <= ce);
+    }
+
+    private bool IsPlayerBase(int x, int z, out int playerIndex) {
+        int cornerSize = (BoardSize - PathWidth) / 2;
         playerIndex = -1;
-
-        // Bottom-Left (Player 0 - FireNation)
-        if (x < cornerSize && z < cornerSize)
-        {
-            playerIndex = 0; 
-            return true;
-        }
-        // Top-Left (Player 1 - EarthKingdom)
-        if (x < cornerSize && z > (cornerSize + PathWidth - 1))
-        {
-            playerIndex = 1;
-            return true;
-        }
-        // Top-Right (Player 2 - AirNomads)
-        if (x > (cornerSize + PathWidth - 1) && z > (cornerSize + PathWidth - 1))
-        {
-            playerIndex = 2;
-            return true;
-        }
-        // Bottom-Right (Player 3 - WaterTribe)
-        if (x > (cornerSize + PathWidth - 1) && z < cornerSize)
-        {
-            playerIndex = 3;
-            return true;
-        }
-
+        if (x < cornerSize && z < cornerSize) { playerIndex = 0; return true; } // Fire
+        if (x < cornerSize && z > (cornerSize + PathWidth -1)) { playerIndex = 1; return true; } // Earth
+        if (x > (cornerSize + PathWidth -1) && z > (cornerSize + PathWidth-1)) { playerIndex = 2; return true; } // Air
+        if (x > (cornerSize + PathWidth -1) && z < cornerSize) { playerIndex = 3; return true; } // Water
         return false;
-    }
-    
-    private void CreateHomePaths()
-    {
-        int center = BoardSize / 2; // 7
-        int pathStart = (BoardSize - PathWidth) / 2; // 6
-        
-        // Player 0 (FireNation) Home Path - Bottom
-        for (int i = 1; i < pathStart; i++)
-        {
-            CreateTile(new Vector3(center, 0, i), playerMaterials[0], "FireNation Home Path", Tile.TileType.Home, playerTypes[0]);
-        }
-
-        // Player 1 (EarthKingdom) Home Path - Left
-        for (int i = 1; i < pathStart; i++)
-        {
-            CreateTile(new Vector3(i, 0, center), playerMaterials[1], "EarthKingdom Home Path", Tile.TileType.Home, playerTypes[1]);
-        }
-        
-        // Player 2 (AirNomads) Home Path - Top
-        for (int i = pathStart + PathWidth; i < BoardSize - 1; i++)
-        {
-             CreateTile(new Vector3(center, 0, i), playerMaterials[2], "AirNomads Home Path", Tile.TileType.Home, playerTypes[2]);
-        }
-        
-        // Player 3 (WaterTribe) Home Path - Right
-        for (int i = pathStart + PathWidth; i < BoardSize - 1; i++)
-        {
-            CreateTile(new Vector3(i, 0, center), playerMaterials[3], "WaterTribe Home Path", Tile.TileType.Home, playerTypes[3]);
-        }
     }
 }
