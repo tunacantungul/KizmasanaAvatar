@@ -22,6 +22,7 @@ public class Tile : MonoBehaviour
     }
 
     [Header("Tile Properties")]
+    public int tileID;
     public PlayerType owner;
     public TileType type;
     public int x;
