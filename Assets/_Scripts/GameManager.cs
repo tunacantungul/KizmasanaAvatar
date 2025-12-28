@@ -2,18 +2,7 @@ using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using UnityEngine.InputSystem;
 using System;
-
-[System.Serializable]
-public class Player
-{
-    public Tile.PlayerType playerType;
-    public List<Pawn> pawns;
-    public List<Tile> baseTiles;
-    public Tile startPathTile;
-}
 
 public class GameManager : MonoBehaviour
 {
@@ -28,24 +17,20 @@ public class GameManager : MonoBehaviour
     }
 
     [Header("Game Components")]
-    public Board gameBoard;
     public Dice dice;
     public UIManager uiManager;
 
-    [Header("Prefabs & Materials")]
+    [Header("Prefabs")]
     public GameObject pawnPrefab;
-    public Material[] playerMaterials; // 0: Fire, 1: Earth, 2: Air, 3: Water
-
+    
     [Header("Game State")]
     public GameState currentState;
-    public List<Player> players;
     public Tile.PlayerType currentPlayerTurn;
     public bool isAutoPlayActive = false;
-
+    
+    private Dictionary<Tile.PlayerType, List<Pawn>> _playerPawns = new Dictionary<Tile.PlayerType, List<Pawn>>();
     private int _diceResult;
     private Camera _mainCamera;
-    
-    // --- System Methods ---
 
     void Start()
     {
@@ -56,14 +41,13 @@ public class GameManager : MonoBehaviour
 
     void Update()
     {
-        // Allow pawn selection only if it's the player's turn and they are not an AI
-        if (!isAutoPlayActive && currentState == GameState.WaitingForPawnSelection && Pointer.current != null && Pointer.current.press.wasPressedThisFrame)
+        // Handle player input for pawn selection
+        if (currentState == GameState.WaitingForPawnSelection && !isAutoPlayActive && Input.GetMouseButtonDown(0))
         {
-            Ray ray = _mainCamera.ScreenPointToRay(Pointer.current.position.ReadValue());
-            if (Physics.Raycast(ray, out var hit))
+            Ray ray = _mainCamera.ScreenPointToRay(Input.mousePosition);
+            if (Physics.Raycast(ray, out var hit) && hit.collider.TryGetComponent<Pawn>(out var clickedPawn))
             {
-                var clickedPawn = hit.collider.GetComponent<Pawn>();
-                if (clickedPawn != null && clickedPawn.owner == currentPlayerTurn)
+                if (clickedPawn.owner == currentPlayerTurn)
                 {
                     TryMovePawn(clickedPawn);
                 }
@@ -71,277 +55,169 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    // --- Game Flow ---
-
-    IEnumerator SetupGame()
+    private IEnumerator SetupGame()
     {
-        if (gameBoard == null) { Debug.LogError("Game Board is not assigned."); yield break; }
-        if (uiManager == null) { Debug.LogError("UI Manager is not assigned."); yield break; }
-        
-        // Board now initializes itself in Awake(), we just need to wait a frame to be sure it's ready.
-        yield return null; 
+        // Wait for the Board to initialize itself
+        yield return new WaitUntil(() => Board.Instance != null);
 
-        // Find all tiles once, as Board.cs has already organized them
-        var allTiles = FindObjectsOfType<Tile>().ToList();
+        var playerTypes = Enum.GetValues(typeof(Tile.PlayerType)).Cast<Tile.PlayerType>()
+                              .Where(p => p != Tile.PlayerType.None).ToList();
 
-        players = new List<Player>();
-        var playerTypes = new[] { Tile.PlayerType.FireNation, Tile.PlayerType.EarthKingdom, Tile.PlayerType.AirNomads, Tile.PlayerType.WaterTribe };
-
-        for (int i = 0; i < playerTypes.Length; i++)
+        foreach (var playerType in playerTypes)
         {
-            var pType = playerTypes[i];
-            var newPlayer = new Player
-            {
-                playerType = pType,
-                pawns = new List<Pawn>(),
-                baseTiles = allTiles.Where(t => t.owner == pType && t.type == Tile.TileType.Base).OrderBy(t => t.z).ThenBy(t => t.x).ToList(),
-                startPathTile = gameBoard.StartTiles.ContainsKey(pType) ? gameBoard.StartTiles[pType] : null
-            };
+            _playerPawns[playerType] = new List<Pawn>();
+            List<Tile> playerBaseTiles = Board.Instance.baseTiles[playerType];
 
-            if (newPlayer.startPathTile == null) {
-                Debug.LogError($"Start tile for {pType} is not set in Board's inspector!");
-            }
-
-            for (int j = 0; j < 4; j++)
+            for (int i = 0; i < playerBaseTiles.Count; i++)
             {
-                var pawnObj = Instantiate(pawnPrefab, newPlayer.baseTiles[j].transform.position + Vector3.up * 0.5f, Quaternion.identity);
-                pawnObj.name = $"{pType} Pawn {j + 1}";
-                if (pawnObj.GetComponent<Collider>() == null) pawnObj.AddComponent<CapsuleCollider>();
+                Tile baseTile = playerBaseTiles[i];
+                GameObject pawnObj = Instantiate(pawnPrefab, baseTile.transform.position, Quaternion.identity);
+                pawnObj.name = $"{playerType} Pawn {i + 1}";
                 
-                var pawnComp = pawnObj.AddComponent<Pawn>();
-                pawnComp.owner = pType;
-                pawnComp.state = Pawn.PawnState.Base;
-                pawnComp.PlaceOnTile(newPlayer.baseTiles[j]); // Use new placement method
+                Pawn pawn = pawnObj.GetComponent<Pawn>();
+                if (pawn == null)
+                {
+                    Debug.LogError($"Pawn prefab does not have a Pawn component!");
+                    yield break;
+                }
+
+                pawn.owner = playerType;
+                pawn.state = Pawn.PawnState.InBase;
+                pawn.PlaceOnTile(baseTile); // Correctly place and associate pawn with tile
                 
-                pawnObj.GetComponent<Renderer>().material = playerMaterials[i];
-                newPlayer.pawns.Add(pawnComp);
+                _playerPawns[playerType].Add(pawn);
             }
-            players.Add(newPlayer);
         }
 
         currentPlayerTurn = playerTypes[0];
-        currentState = GameState.WaitingForRoll;
-        uiManager.UpdateStatus($"Sıra: {currentPlayerTurn}\nZar atmak için butona tıkla.");
-        UpdateScoreboard();
+        TransitionToState(GameState.WaitingForRoll);
     }
-
+    
     public void OnDiceRolled(int result)
     {
         if (currentState != GameState.WaitingForRoll) return;
+
         _diceResult = result;
         uiManager.UpdateDiceResult("Zar: " + _diceResult);
 
-        if (CanPlayerMove(currentPlayerTurn, _diceResult))
+        List<Pawn> movablePawns = GetMovablePawns(currentPlayerTurn, _diceResult);
+
+        if (movablePawns.Count > 0)
         {
-            currentState = GameState.WaitingForPawnSelection;
+            TransitionToState(GameState.WaitingForPawnSelection);
             if (isAutoPlayActive)
             {
-                StartCoroutine(AI_ChooseAndMovePawn());
-            }
-            else
-            {
-                uiManager.UpdateStatus($"Sıra: {currentPlayerTurn}\nLütfen hareket ettirmek için bir piyon seç.");
+                TryMovePawn(movablePawns.First()); // Simple AI: move the first available pawn
             }
         }
         else
         {
-            uiManager.UpdateStatus($"Sıra: {currentPlayerTurn}\nGeçerli hamle yok, sıra atlanıyor...");
-            currentState = GameState.TurnOver;
-            StartCoroutine(AutoEndTurnAfterDelay());
+            uiManager.UpdateStatus("Oynanacak hamle yok.");
+            StartCoroutine(EndTurnAfterDelay(1.5f));
         }
     }
-
-    private void EndTurn()
-    {
-        if (currentState == GameState.GameFinished) return;
-        
-        UpdateScoreboard();
-
-        int currentPlayerIndex = (int)currentPlayerTurn - 1;
-        int nextPlayerIndex = (_diceResult == 6) ? currentPlayerIndex : (currentPlayerIndex + 1) % players.Count;
-
-        currentPlayerTurn = (Tile.PlayerType)(nextPlayerIndex + 1);
-        currentState = GameState.WaitingForRoll;
-        uiManager.UpdateStatus($"Sıra: {currentPlayerTurn}\nZar atmak için butona tıkla.");
-
-        if (isAutoPlayActive)
-        {
-            StartCoroutine(AutoPlayTurn());
-        }
-    }
-
-    // --- Movement and Rules Logic ---
 
     private void TryMovePawn(Pawn pawn)
     {
         if (currentState != GameState.WaitingForPawnSelection) return;
 
-        Action onMoveComplete = () => { EndTurn(); };
+        TransitionToState(GameState.PawnMoving);
 
-        switch (pawn.state)
+        Action onMoveComplete = () => {
+            if (_diceResult == 6)
+            {
+                TransitionToState(GameState.WaitingForRoll); // Roll again
+            }
+            else
+            {
+                SwitchToNextPlayer();
+                TransitionToState(GameState.WaitingForRoll);
+            }
+        };
+
+        // --- Game Rule Logic ---
+        if (pawn.state == Pawn.PawnState.InBase && _diceResult == 6)
         {
-            case Pawn.PawnState.Base:
-                if (_diceResult == 6)
-                {
-                    currentState = GameState.PawnMoving;
-                    var targetTile = players.First(p => p.playerType == currentPlayerTurn).startPathTile;
-                    CheckForCapture(targetTile, pawn);
-                    pawn.state = Pawn.PawnState.OnBoard;
-                    pawn.PlaceOnTile(targetTile); // Instant move from base
-                    onMoveComplete();
-                }
-                else
-                {
-                    uiManager.UpdateStatus("Bu piyonu çıkarmak için 6 atmalısın.");
-                }
-                break;
-
-            case Pawn.PawnState.OnBoard:
-                // TODO: Add logic for entering home path. For now, we move along the main path.
-                int targetTileID = pawn.currentTileID + _diceResult;
-                var destinationTile = gameBoard.GetTile(targetTileID);
-
-                if (destinationTile != null)
-                {
-                    currentState = GameState.PawnMoving;
-                    CheckForCapture(destinationTile, pawn);
-                    pawn.Move(gameBoard, _diceResult, onMoveComplete);
-                }
-                else
-                {
-                    uiManager.UpdateStatus("Hamle geçersiz. Yolun sonuna ulaştın.");
-                }
-                break;
-
-            case Pawn.PawnState.InHomePath:
-                 // TODO: Implement home path movement
-                uiManager.UpdateStatus("Evdeki piyonların hareketi henüz kodlanmadı.");
-                break;
+            Tile startTile = Board.Instance.startTiles[pawn.owner];
+            CheckForCapture(startTile, pawn);
+            pawn.PlaceOnTile(startTile);
+            pawn.state = Pawn.PawnState.OnPath;
+            onMoveComplete();
+        }
+        else if (pawn.state == Pawn.PawnState.OnPath || pawn.state == Pawn.PawnState.InHome)
+        {
+            // The intelligent Pawn.Move method now handles all the pathing logic.
+            pawn.Move(_diceResult, onMoveComplete);
         }
     }
-    
-    private bool CanPlayerMove(Tile.PlayerType playerType, int diceResult)
+
+    private void CheckForCapture(Tile destinationTile, Pawn movingPawn)
     {
-        var player = players.First(p => p.playerType == playerType);
-        if (player.pawns.All(p => p.state == Pawn.PawnState.Finished)) return false;
-
-        // If a 6 is rolled, a pawn can always move from base (if any are there)
-        if (diceResult == 6 && player.pawns.Any(p => p.state == Pawn.PawnState.Base)) return true;
-        
-        // Check if any pawns on the board can move
-        foreach (var pawn in player.pawns.Where(p => p.state == Pawn.PawnState.OnBoard))
+        if (destinationTile.pawnOnTile != null && destinationTile.pawnOnTile.owner != movingPawn.owner)
         {
-            int targetTileID = pawn.currentTileID + diceResult;
-            // Basic check: is the target tile valid? More complex logic needed for home paths.
-            if (gameBoard.GetTile(targetTileID) != null) return true;
-        }
+            Pawn capturedPawn = destinationTile.pawnOnTile;
+            Debug.Log($"{movingPawn.owner} captured {capturedPawn.owner}!");
 
-        // TODO: Add check for pawns in home path
-        return false;
-    }
-
-
-    private void CheckForCapture(Tile targetTile, Pawn movingPawn)
-    {
-        // Find any pawn that is not owned by the current player and is on the target tile
-        var pawnOnTarget = players.SelectMany(p => p.pawns)
-                                  .FirstOrDefault(p => p.currentTile == targetTile && 
-                                                       p.owner != movingPawn.owner && 
-                                                       p.state == Pawn.PawnState.OnBoard);
-
-        if (pawnOnTarget != null)
-        {
-            var ownerPlayer = players.First(p => p.playerType == pawnOnTarget.owner);
             // Find an empty base tile for the captured pawn
-            var emptyBaseTile = ownerPlayer.baseTiles.FirstOrDefault(bt => 
-                !ownerPlayer.pawns.Any(p => p.currentTile == bt && p != pawnOnTarget)
-            );
-
+            Tile emptyBaseTile = Board.Instance.baseTiles[capturedPawn.owner]
+                                       .FirstOrDefault(t => t.pawnOnTile == null);
             if (emptyBaseTile != null)
             {
-                pawnOnTarget.state = Pawn.PawnState.Base;
-                pawnOnTarget.PlaceOnTile(emptyBaseTile);
-                Debug.Log($"{movingPawn.owner}'s pawn captured {pawnOnTarget.owner}'s pawn!");
+                capturedPawn.PlaceOnTile(emptyBaseTile);
+                capturedPawn.state = Pawn.PawnState.InBase;
             }
         }
     }
-
-    private void CheckForWin()
+    
+    private List<Pawn> GetMovablePawns(Tile.PlayerType player, int diceRoll)
     {
-        var winner = players.FirstOrDefault(p => p.pawns.All(pawn => pawn.state == Pawn.PawnState.Finished));
-        if (winner != null)
-        {
-            currentState = GameState.GameFinished;
-            uiManager.UpdateStatus($"{winner.playerType} oyunu kazandı! Tebrikler!");
-            dice.rollButton.interactable = false;
-            isAutoPlayActive = false;
-        }
-    }
+        List<Pawn> pawns = _playerPawns[player];
+        List<Pawn> movable = new List<Pawn>();
 
-    // --- Auto-Play AI ---
-
-    public void SetAutoPlay(bool isActive)
-    {
-        isAutoPlayActive = isActive;
-        if (isActive && currentState == GameState.WaitingForRoll)
+        // If roll is 6, any pawn in base is movable
+        if (diceRoll == 6 && pawns.Any(p => p.state == Pawn.PawnState.InBase))
         {
-            StartCoroutine(AutoPlayTurn());
-        }
-    }
-
-    private IEnumerator AutoPlayTurn()
-    {
-        yield return new WaitForSeconds(0.75f);
-        if (currentState == GameState.WaitingForRoll)
-        {
-            dice.RollForButton();
-        }
-    }
-
-    private IEnumerator AI_ChooseAndMovePawn()
-    {
-        yield return new WaitForSeconds(0.75f);
-        var pawnToMove = AI_FindBestPawnToMove();
-        if (pawnToMove != null)
-        {
-            TryMovePawn(pawnToMove);
-        }
-        else
-        {
-            EndTurn();
-        }
-    }
-
-    private Pawn AI_FindBestPawnToMove()
-    {
-        // AI logic needs to be updated to be compatible with the new systems.
-        // For now, let's just find the first valid move.
-        var player = players.First(p => p.playerType == currentPlayerTurn);
-        
-        // Priority 1: Move pawn from base with a 6
-        if (_diceResult == 6)
-        {
-            var pawnInBase = player.pawns.FirstOrDefault(p => p.state == Pawn.PawnState.Base);
-            if (pawnInBase != null) return pawnInBase;
+            movable.AddRange(pawns.Where(p => p.state == Pawn.PawnState.InBase));
         }
         
-        // Priority 2: Move any pawn on the board
-        return player.pawns.FirstOrDefault(p => p.state == Pawn.PawnState.OnBoard);
-    }
+        // Any pawn on a path is potentially movable
+        movable.AddRange(pawns.Where(p => p.state == Pawn.PawnState.OnPath || p.state == Pawn.PawnState.InHome));
 
-    private IEnumerator AutoEndTurnAfterDelay()
-    {
-        yield return new WaitForSeconds(1.5f);
-        EndTurn();
+        // TODO: Add more refined logic here, e.g., pawns at the end of home path cannot move.
+        return movable.Distinct().ToList();
     }
-
-    private void UpdateScoreboard()
+    
+    private void SwitchToNextPlayer()
     {
-        var sb = new StringBuilder("Skor:\n");
-        foreach (var p in players)
+        int currentIndex = (int)currentPlayerTurn -1;
+        int nextIndex = (currentIndex + 1) % _playerPawns.Count;
+        currentPlayerTurn = (Tile.PlayerType)(nextIndex + 1);
+    }
+    
+    private void TransitionToState(GameState newState)
+    {
+        currentState = newState;
+        switch (currentState)
         {
-            sb.AppendLine($"{p.playerType}: {p.pawns.Count(pawn => pawn.state == Pawn.PawnState.Finished)} / 4");
+            case GameState.WaitingForRoll:
+                uiManager.UpdateStatus($"Sıra: {currentPlayerTurn}\nZar atmak için tıkla.");
+                dice.rollButton.interactable = true;
+                break;
+            case GameState.WaitingForPawnSelection:
+                 uiManager.UpdateStatus($"Sıra: {currentPlayerTurn}\nHareket ettirmek için bir piyon seç.");
+                dice.rollButton.interactable = false;
+                break;
+            case GameState.PawnMoving:
+                uiManager.UpdateStatus($"{currentPlayerTurn} piyonunu hareket ettiriyor...");
+                dice.rollButton.interactable = false;
+                break;
         }
-        uiManager.UpdateScore(sb.ToString());
+    }
+
+    private IEnumerator EndTurnAfterDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        SwitchToNextPlayer();
+        TransitionToState(GameState.WaitingForRoll);
     }
 }

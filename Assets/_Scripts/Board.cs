@@ -2,113 +2,99 @@ using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
 
+/// <summary>
+/// Manages all the tiles in the scene.
+/// Finds and categorizes tiles on Awake, providing easy access for other systems.
+/// This class does not create any tiles itself; it only reads the scene.
+/// </summary>
 public class Board : MonoBehaviour
 {
-    // A dictionary to hold all path tiles, keyed by their unique ID for quick lookups.
-    private Dictionary<int, Tile> _pathTiles;
+    public static Board Instance { get; private set; }
 
-    // Public properties to access the organized tiles from other scripts like GameManager.
-    public List<Tile> MainPath { get; private set; }
-    public Dictionary<Tile.PlayerType, List<Tile>> HomePaths { get; private set; }
-    public Dictionary<Tile.PlayerType, Tile> StartTiles { get; private set; }
-    public Tile GoalTile { get; private set; }
+    // Fast lookup for any tile by its unique ID
+    public Dictionary<int, Tile> allTiles = new Dictionary<int, Tile>();
 
-    [Header("Pathing Configuration")]
-    [Tooltip("The tile ID where the Fire Nation pawn enters the main path.")]
-    public int fireNationStartTileID = 1;
-    [Tooltip("The tile ID where the Earth Kingdom pawn enters the main path.")]
-    public int earthKingdomStartTileID = 14;
-    [Tooltip("The tile ID where the Air Nomads pawn enters the main path.")]
-    public int airNomadsStartTileID = 27;
-    [Tooltip("The tile ID where the Water Tribe pawn enters the main path.")]
-    public int waterTribeStartTileID = 40;
-
+    // Categorized tiles for game logic
+    public Dictionary<Tile.PlayerType, List<Tile>> baseTiles = new Dictionary<Tile.PlayerType, List<Tile>>();
+    public Dictionary<Tile.PlayerType, List<Tile>> homeTiles = new Dictionary<Tile.PlayerType, List<Tile>>();
+    public Dictionary<Tile.PlayerType, Tile> startTiles = new Dictionary<Tile.PlayerType, Tile>();
+    
+    // The main path, sorted sequentially by TileID
+    public List<Tile> pathTiles = new List<Tile>();
+    public int PathLength => pathTiles.Count;
 
     void Awake()
     {
+        // Singleton Pattern
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+        Instance = this;
+
         InitializeBoard();
     }
 
-    /// <summary>
-    /// Finds all Tile components in the scene and organizes them into paths and other data structures.
-    /// This removes the need for procedural board generation.
-    /// </summary>
-    public void InitializeBoard()
+    private void InitializeBoard()
     {
-        // Initialize collections
-        _pathTiles = new Dictionary<int, Tile>();
-        HomePaths = new Dictionary<Tile.PlayerType, List<Tile>>
+        // Initialize dictionaries for each player nation
+        var playerTypes = System.Enum.GetValues(typeof(Tile.PlayerType)).Cast<Tile.PlayerType>();
+        foreach (var player in playerTypes)
         {
-            { Tile.PlayerType.FireNation, new List<Tile>() },
-            { Tile.PlayerType.EarthKingdom, new List<Tile>() },
-            { Tile.PlayerType.AirNomads, new List<Tile>() },
-            { Tile.PlayerType.WaterTribe, new List<Tile>() }
-        };
-        StartTiles = new Dictionary<Tile.PlayerType, Tile>();
+            if (player == Tile.PlayerType.None) continue;
+            baseTiles[player] = new List<Tile>();
+            homeTiles[player] = new List<Tile>();
+        }
 
-        // Find all tiles placed in the scene
-        Tile[] allTiles = FindObjectsOfType<Tile>();
+        // Find all Tile components placed in the current scene
+        Tile[] sceneTiles = FindObjectsOfType<Tile>();
 
-        foreach (Tile tile in allTiles)
+        foreach (Tile tile in sceneTiles)
         {
+            // Add to the main dictionary, checking for duplicate IDs
+            if (allTiles.ContainsKey(tile.tileID))
+            {
+                Debug.LogWarning($"[Board] Duplicate TileID '{tile.tileID}' found on object '{tile.gameObject.name}'. It will be ignored.", tile.gameObject);
+                continue;
+            }
+            allTiles.Add(tile.tileID, tile);
+
+            // Categorize the tile based on its type and owner
             switch (tile.type)
             {
                 case Tile.TileType.Path:
-                    // Ensure there are no duplicate IDs
-                    if (!_pathTiles.ContainsKey(tile.tileID))
-                    {
-                        _pathTiles.Add(tile.tileID, tile);
-                    }
-                    else
-                    {
-                        Debug.LogWarning($"Duplicate Tile ID found: {tile.tileID}. Ignoring tile {tile.name}.");
-                    }
+                    pathTiles.Add(tile);
                     break;
-
-                case Tile.TileType.Home:
-                    if (HomePaths.ContainsKey(tile.owner))
-                    {
-                        HomePaths[tile.owner].Add(tile);
-                    }
-                    break;
-
-                case Tile.TileType.Goal:
-                    GoalTile = tile;
-                    break;
-                
-                // TileType.Base tiles are just for visuals and starting positions,
-                // they don't need to be stored in a pathing structure by the Board itself.
                 case Tile.TileType.Base:
+                    if (baseTiles.ContainsKey(tile.owner))
+                        baseTiles[tile.owner].Add(tile);
+                    break;
+                case Tile.TileType.Home:
+                    if (homeTiles.ContainsKey(tile.owner))
+                        homeTiles[tile.owner].Add(tile);
+                    break;
+                case Tile.TileType.Start:
+                    if (startTiles.ContainsKey(tile.owner))
+                        Debug.LogWarning($"[Board] Duplicate Start tile for '{tile.owner}'. Overwriting with '{tile.gameObject.name}'.", tile.gameObject);
+                    startTiles[tile.owner] = tile;
                     break;
             }
         }
-        
-        // Populate the MainPath list by ordering the path tiles by their ID
-        MainPath = _pathTiles.OrderBy(kvp => kvp.Key).Select(kvp => kvp.Value).ToList();
 
-        // Sort each home path based on their Tile ID to ensure they are in order.
-        foreach (var homePathList in HomePaths.Values)
+        // Sort the path and home tiles by their ID to ensure sequential movement
+        pathTiles = pathTiles.OrderBy(t => t.tileID).ToList();
+        foreach (var homeList in homeTiles.Values)
         {
-            homePathList.Sort((a, b) => a.tileID.CompareTo(b.tileID));
+            homeList.Sort((a, b) => a.tileID.CompareTo(b.tileID));
         }
 
-        // Identify and store the designated start tiles
-        if (_pathTiles.ContainsKey(fireNationStartTileID)) StartTiles[Tile.PlayerType.FireNation] = _pathTiles[fireNationStartTileID];
-        if (_pathTiles.ContainsKey(earthKingdomStartTileID)) StartTiles[Tile.PlayerType.EarthKingdom] = _pathTiles[earthKingdomStartTileID];
-        if (_pathTiles.ContainsKey(airNomadsStartTileID)) StartTiles[Tile.PlayerType.AirNomads] = _pathTiles[airNomadsStartTileID];
-        if (_pathTiles.ContainsKey(waterTribeStartTileID)) StartTiles[Tile.PlayerType.WaterTribe] = _pathTiles[waterTribeStartTileID];
-        
-        Debug.Log("Board Initialized: " + MainPath.Count + " main path tiles found and organized.");
+        Debug.Log($"[Board] Initialized. Found {allTiles.Count} tiles. Main path has {PathLength} tiles.");
     }
-
-    /// <summary>
-    /// Gets a specific tile from the main path using its ID.
-    /// </summary>
-    /// <param name="tileID">The ID of the tile to retrieve.</param>
-    /// <returns>The Tile component if found, otherwise null.</returns>
+    
     public Tile GetTile(int tileID)
     {
-        _pathTiles.TryGetValue(tileID, out Tile tile);
+        allTiles.TryGetValue(tileID, out Tile tile);
         return tile;
     }
 }

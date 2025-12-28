@@ -1,107 +1,148 @@
 using UnityEngine;
 using System.Collections;
 using System;
+using System.Collections.Generic;
 
 public class Pawn : MonoBehaviour
 {
     public enum PawnState
     {
-        Base,
-        OnBoard,
-        InHomePath,
+        InBase,
+        OnPath,
+        InHome,
         Finished
     }
 
-    [Header("Pawn Properties")]
+    [Header("Properties")]
     public Tile.PlayerType owner;
-    public PawnState state = PawnState.Base;
+    public PawnState state = PawnState.InBase;
 
     [Header("Location")]
-    public int currentTileID = -1; // -1 means in base. 0 is not a valid tile ID for this system.
     public Tile currentTile;
 
     [Header("Movement")]
-    public float moveSpeed = 8f; // Speed of the pawn as it moves from one tile to the next.
+    public float moveSpeed = 8f;
     private bool isMoving = false;
+    private Action onMoveComplete;
 
     /// <summary>
-    /// Instantly places the pawn on a given tile without animation.
-    /// Used for setting up the pawn at the start or after being knocked out.
+    /// Teleports the pawn to a specific tile. Used for initial setup.
     /// </summary>
-    public void PlaceOnTile(Tile newTile)
+    public void PlaceOnTile(Tile tile)
     {
-        if (newTile == null) return;
-
-        transform.position = newTile.transform.position + Vector3.up * 0.5f; // Place it slightly above the tile
-        currentTile = newTile;
-        currentTileID = newTile.tileID;
-    }
-
-    /// <summary>
-    /// Starts the process of moving the pawn step-by-step along the path.
-    /// </summary>
-    /// <param name="board">Reference to the board for pathing data.</param>
-    /// <param name="steps">The number of tiles to move forward.</param>
-    /// <param name="onMoveComplete">Callback action to invoke when movement is finished.</param>
-    public void Move(Board board, int steps, Action onMoveComplete)
-    {
-        if (isMoving || state != PawnState.OnBoard)
+        if (tile == null)
         {
-            onMoveComplete?.Invoke();
+            Debug.LogError($"Attempted to place pawn on a null tile.", this);
             return;
         }
 
-        int targetTileID = currentTileID + steps;
-        
-        // This is a basic implementation. A real game would need to handle moving past the end of the
-        // main path and entering a home path. For now, we'll just move on the main path.
-        // We also need to ensure the targetTileID is valid.
-        if (board.GetTile(targetTileID) != null)
+        if (currentTile != null)
         {
-            StartCoroutine(MoveStepByStep(board, targetTileID, onMoveComplete));
+            currentTile.pawnOnTile = null;
         }
-        else
-        {
-            Debug.LogWarning($"Pawn move cancelled. Target Tile ID {targetTileID} is not valid.");
-            onMoveComplete?.Invoke();
-        }
+
+        currentTile = tile;
+        currentTile.pawnOnTile = this;
+        transform.position = GetTargetPositionForTile(tile);
     }
 
     /// <summary>
-    /// Coroutine that handles the visual, step-by-step movement of the pawn.
+    /// Public method to start the movement process.
     /// </summary>
-    private IEnumerator MoveStepByStep(Board board, int targetTileID, Action onMoveComplete)
+    public void Move(int steps, Action onComplete)
+    {
+        if (isMoving)
+        {
+            onComplete?.Invoke();
+            return;
+        }
+
+        onMoveComplete = onComplete;
+        StartCoroutine(MoveRoutine(steps));
+    }
+
+    private IEnumerator MoveRoutine(int steps)
     {
         isMoving = true;
-
-        // Loop from the next tile to the target tile
-        for (int i = currentTileID + 1; i <= targetTileID; i++)
+        
+        for (int i = 0; i < steps; i++)
         {
-            Tile nextTile = board.GetTile(i);
+            Tile nextTile = GetNextTile();
             if (nextTile == null)
             {
-                Debug.LogError($"Path broken at Tile ID {i}. Stopping movement.");
+                Debug.LogWarning("Pawn has nowhere to move. Stopping.", this);
                 break;
             }
 
-            Vector3 targetPosition = nextTile.transform.position + Vector3.up * 0.5f;
+            // Animate movement to the next tile
+            yield return StartCoroutine(AnimateToTile(nextTile));
 
-            // Move towards the next tile until we are very close
-            while (Vector3.Distance(transform.position, targetPosition) > 0.01f)
-            {
-                transform.position = Vector3.MoveTowards(transform.position, targetPosition, moveSpeed * Time.deltaTime);
-                yield return null; // Wait for the next frame
-            }
-
-            // Snap to the final position to ensure accuracy
-            transform.position = targetPosition;
-            currentTileID = i;
-            currentTile = nextTile;
+            // Update state after animation
+            UpdateTileOccupation(nextTile);
         }
 
         isMoving = false;
-        
-        // Notify the caller that the move is complete.
         onMoveComplete?.Invoke();
+    }
+    
+    private Tile GetNextTile()
+    {
+        // Logic for finding the very next tile based on current state and position
+        if (state == PawnState.OnPath)
+        {
+            List<Tile> path = Board.Instance.pathTiles;
+            int currentIndex = path.IndexOf(currentTile);
+
+            // This is a placeholder for home entry logic
+            // bool shouldEnterHome = ...
+
+            // if (shouldEnterHome) {
+            //     state = PawnState.InHome;
+            //     return Board.Instance.homeTiles[owner][0];
+            // }
+
+            // Wrap around the path
+            int nextIndex = (currentIndex + 1) % path.Count;
+            return path[nextIndex];
+        }
+        else if (state == PawnState.InHome)
+        {
+            List<Tile> homePath = Board.Instance.homeTiles[owner];
+            int currentIndex = homePath.IndexOf(currentTile);
+            if (currentIndex < homePath.Count - 1)
+            {
+                return homePath[currentIndex + 1];
+            }
+        }
+        
+        // If in base, finished, or at the end of home path, no next tile
+        return null; 
+    }
+
+    private void UpdateTileOccupation(Tile newTile)
+    {
+        if (currentTile != null)
+        {
+            currentTile.pawnOnTile = null;
+        }
+        currentTile = newTile;
+        currentTile.pawnOnTile = this;
+    }
+
+    private IEnumerator AnimateToTile(Tile targetTile)
+    {
+        Vector3 targetPosition = GetTargetPositionForTile(targetTile);
+        while (Vector3.Distance(transform.position, targetPosition) > 0.01f)
+        {
+            transform.position = Vector3.MoveTowards(transform.position, targetPosition, moveSpeed * Time.deltaTime);
+            yield return null;
+        }
+        transform.position = targetPosition; // Snap to final position
+    }
+
+    private Vector3 GetTargetPositionForTile(Tile tile)
+    {
+        // Places the pawn slightly above the tile's surface.
+        return tile.transform.position + Vector3.up * 0.5f;
     }
 }
