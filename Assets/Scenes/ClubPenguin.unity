@@ -145,15 +145,15 @@ MonoBehaviour:
   m_GameObject: {fileID: 176090937}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9a586e327d4c8934085c7f08080a5bd3, type: 3}
+  m_Script: {fileID: 11500000, guid: 36235701151a33d4b85807e7e57aa4ca, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::KarateGameManager
   playerCharacterDisplay: {fileID: 312663337}
   npcCharacterDisplay: {fileID: 577376896}
-  korraSprite: {fileID: 21300000, guid: 3769a0c879f6f3241921b3c266511b9f, type: 3}
-  fireNpcSprite: {fileID: 21300000, guid: 85a0c86aa6b20b94cbbc6371c9097040, type: 3}
-  waterNpcSprite: {fileID: 21300000, guid: e982d4f7ff437fd45aa370f52befc687, type: 3}
-  earthNpcSprite: {fileID: 21300000, guid: 475345463cd996744920939524678103, type: 3}
+  korraSprite: {fileID: 21300000, guid: 6fc6e7a6a84338e4f9ae866cbceaef9c, type: 3}
+  fireNpcSprite: {fileID: 21300000, guid: c41a2d160c4e0634da4246647637ff3a, type: 3}
+  waterNpcSprite: {fileID: 21300000, guid: 3463dc2c4f1092242b42f2de53e2e3be, type: 3}
+  earthNpcSprite: {fileID: 21300000, guid: 6b56b33f0a69cb645ac3f7b1aed163c2, type: 3}
   playerProjectileSpawn: {fileID: 498071261}
   npcProjectileSpawn: {fileID: 1779867813}
   fireProjectile: {fileID: 1008835385}
@@ -679,13 +679,13 @@ MonoBehaviour:
   m_GameObject: {fileID: 410773560}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: abe1985ea4ddb3547a5e09f55adde48d, type: 3}
+  m_Script: {fileID: 11500000, guid: 74250e4e510d0ac448d7ee270799c470, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CardController
-  fireSprite: {fileID: 21300000, guid: e6c1223394106c342a69508e31a81fb7, type: 3}
-  waterSprite: {fileID: 21300000, guid: 42b7b6110d5fc8e43be2b86f8a96d2c9, type: 3}
-  earthSprite: {fileID: 21300000, guid: 1e0a5cbea028cf94390b89d4f7205068, type: 3}
-  airSprite: {fileID: 21300000, guid: d2b0a2125ba4b2b4bab293b283d8c644, type: 3}
+  fireSprite: {fileID: 21300000, guid: de95c669624b30c429e770b4bd9b0655, type: 3}
+  waterSprite: {fileID: 21300000, guid: 34adfe582e3db5b458da9d65d8d9e8bd, type: 3}
+  earthSprite: {fileID: 21300000, guid: 02dfbf57c0d9b5b4abffc593aca2a127, type: 3}
+  airSprite: {fileID: 21300000, guid: 693d56ba649eb694cbdf5706766c42ba, type: 3}
 --- !u!114 &410773563
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -960,13 +960,13 @@ MonoBehaviour:
   m_GameObject: {fileID: 660133016}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: abe1985ea4ddb3547a5e09f55adde48d, type: 3}
+  m_Script: {fileID: 11500000, guid: 74250e4e510d0ac448d7ee270799c470, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CardController
-  fireSprite: {fileID: 21300000, guid: e6c1223394106c342a69508e31a81fb7, type: 3}
-  waterSprite: {fileID: 21300000, guid: 42b7b6110d5fc8e43be2b86f8a96d2c9, type: 3}
-  earthSprite: {fileID: 21300000, guid: 1e0a5cbea028cf94390b89d4f7205068, type: 3}
-  airSprite: {fileID: 21300000, guid: d2b0a2125ba4b2b4bab293b283d8c644, type: 3}
+  fireSprite: {fileID: 21300000, guid: de95c669624b30c429e770b4bd9b0655, type: 3}
+  waterSprite: {fileID: 21300000, guid: 34adfe582e3db5b458da9d65d8d9e8bd, type: 3}
+  earthSprite: {fileID: 21300000, guid: 02dfbf57c0d9b5b4abffc593aca2a127, type: 3}
+  airSprite: {fileID: 21300000, guid: 693d56ba649eb694cbdf5706766c42ba, type: 3}
 --- !u!114 &660133019
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1062,7 +1062,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 91f8468c60e8f294eb739ca0d49dc51b, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 0c8c95a72c527084fa7d82fed40758aa, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -1137,7 +1137,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 441c59b5f50f5f34296256e59e6051c2, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 881af87cdc382e14181718f18d7ca8ca, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -1202,13 +1202,13 @@ MonoBehaviour:
   m_GameObject: {fileID: 731900571}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: abe1985ea4ddb3547a5e09f55adde48d, type: 3}
+  m_Script: {fileID: 11500000, guid: 74250e4e510d0ac448d7ee270799c470, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CardController
-  fireSprite: {fileID: 21300000, guid: e6c1223394106c342a69508e31a81fb7, type: 3}
-  waterSprite: {fileID: 21300000, guid: 42b7b6110d5fc8e43be2b86f8a96d2c9, type: 3}
-  earthSprite: {fileID: 21300000, guid: 1e0a5cbea028cf94390b89d4f7205068, type: 3}
-  airSprite: {fileID: 21300000, guid: d2b0a2125ba4b2b4bab293b283d8c644, type: 3}
+  fireSprite: {fileID: 21300000, guid: de95c669624b30c429e770b4bd9b0655, type: 3}
+  waterSprite: {fileID: 21300000, guid: 34adfe582e3db5b458da9d65d8d9e8bd, type: 3}
+  earthSprite: {fileID: 21300000, guid: 02dfbf57c0d9b5b4abffc593aca2a127, type: 3}
+  airSprite: {fileID: 21300000, guid: 693d56ba649eb694cbdf5706766c42ba, type: 3}
 --- !u!114 &731900574
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1304,7 +1304,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: f6b44d44b6273e44690352ad269d5d5c, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 8144372a2e399ce429687b45aa9c177e, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -1583,7 +1583,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 30cc6ae850dee904c95aade8d2e1a78e, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 4f491cc152bb108419e605fd0fc651dd, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -1689,13 +1689,13 @@ MonoBehaviour:
   m_GameObject: {fileID: 1344358280}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: abe1985ea4ddb3547a5e09f55adde48d, type: 3}
+  m_Script: {fileID: 11500000, guid: 74250e4e510d0ac448d7ee270799c470, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CardController
-  fireSprite: {fileID: 21300000, guid: e6c1223394106c342a69508e31a81fb7, type: 3}
-  waterSprite: {fileID: 21300000, guid: 42b7b6110d5fc8e43be2b86f8a96d2c9, type: 3}
-  earthSprite: {fileID: 21300000, guid: 1e0a5cbea028cf94390b89d4f7205068, type: 3}
-  airSprite: {fileID: 21300000, guid: d2b0a2125ba4b2b4bab293b283d8c644, type: 3}
+  fireSprite: {fileID: 21300000, guid: de95c669624b30c429e770b4bd9b0655, type: 3}
+  waterSprite: {fileID: 21300000, guid: 34adfe582e3db5b458da9d65d8d9e8bd, type: 3}
+  earthSprite: {fileID: 21300000, guid: 02dfbf57c0d9b5b4abffc593aca2a127, type: 3}
+  airSprite: {fileID: 21300000, guid: 693d56ba649eb694cbdf5706766c42ba, type: 3}
 --- !u!114 &1344358283
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1870,7 +1870,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 441c59b5f50f5f34296256e59e6051c2, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 881af87cdc382e14181718f18d7ca8ca, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -1972,13 +1972,13 @@ MonoBehaviour:
   m_GameObject: {fileID: 1778409477}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: abe1985ea4ddb3547a5e09f55adde48d, type: 3}
+  m_Script: {fileID: 11500000, guid: 74250e4e510d0ac448d7ee270799c470, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CardController
-  fireSprite: {fileID: 21300000, guid: e6c1223394106c342a69508e31a81fb7, type: 3}
-  waterSprite: {fileID: 21300000, guid: 42b7b6110d5fc8e43be2b86f8a96d2c9, type: 3}
-  earthSprite: {fileID: 21300000, guid: 1e0a5cbea028cf94390b89d4f7205068, type: 3}
-  airSprite: {fileID: 21300000, guid: d2b0a2125ba4b2b4bab293b283d8c644, type: 3}
+  fireSprite: {fileID: 21300000, guid: de95c669624b30c429e770b4bd9b0655, type: 3}
+  waterSprite: {fileID: 21300000, guid: 34adfe582e3db5b458da9d65d8d9e8bd, type: 3}
+  earthSprite: {fileID: 21300000, guid: 02dfbf57c0d9b5b4abffc593aca2a127, type: 3}
+  airSprite: {fileID: 21300000, guid: 693d56ba649eb694cbdf5706766c42ba, type: 3}
 --- !u!114 &1778409480
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2109,7 +2109,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 2c3ce3adfc159ba4ea120517e25b43e1, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 4c22168e558e02b4b9527b396ba82ddd, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -2223,10 +2223,10 @@ RectTransform:
   m_Children:
   - {fileID: 2133390269}
   - {fileID: 1252394072}
-  - {fileID: 1260150370}
   - {fileID: 1249757383}
   - {fileID: 1664839063}
   - {fileID: 304529387}
+  - {fileID: 1260150370}
   - {fileID: 1080403144}
   - {fileID: 244691744}
   m_Father: {fileID: 0}
@@ -2609,7 +2609,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 0b6a93e7ae162064d84243bf1701dfee, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 1a8074b0e75a0c543a64077259178f2f, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
