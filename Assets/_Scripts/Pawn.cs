@@ -11,6 +11,7 @@ public class Pawn : MonoBehaviour
     }
 
     [Header("Pawn Properties")]
+    public int pawnId;
     public Tile.PlayerType owner;
     public PawnState state = PawnState.Base;
 
@@ -20,6 +21,7 @@ public class Pawn : MonoBehaviour
     
     [Header("Movement")]
     public int pathPosition = -1; // Index on the main path loop
+    public bool hasCompletedLap = false;
     public bool isSafe = false;
 
     public void MoveToTile(Tile newTile)

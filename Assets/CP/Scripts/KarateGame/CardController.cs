@@ -25,7 +25,7 @@ public class CardController : MonoBehaviour, IPointerClickHandler
     {
         // Find the game manager in the scene. 
         // A more robust method for complex scenes might be a singleton pattern.
-        gameManager = FindObjectOfType<KarateGameManager>();
+        gameManager = FindFirstObjectByType<KarateGameManager>();
 
         // Get the Image component attached to this GameObject
         cardImage = GetComponent<Image>();

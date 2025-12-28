@@ -27,7 +27,7 @@ public class CameraController : MonoBehaviour
         if (target == null)
         {
             // Try to find the GameManager if not assigned
-            var gameManager = FindObjectOfType<GameManager>();
+            var gameManager = FindFirstObjectByType<GameManager>();
             if (gameManager != null)
             {
                 target = gameManager.transform;

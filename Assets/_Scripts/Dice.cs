@@ -9,9 +9,15 @@ public class Dice : MonoBehaviour
 
     void Start()
     {
-        _gameManager = FindObjectOfType<GameManager>();
-        _uiManager = FindObjectOfType<UIManager>();
+        _gameManager = FindFirstObjectByType<GameManager>();
+        _uiManager = FindFirstObjectByType<UIManager>();
         
+        if (rollButton == null)
+        {
+            Debug.LogError("CRITICAL ERROR: Roll Button, Dice script'ine atanmamış! Lütfen Unity Inspector'dan atamayı yapın.");
+            return;
+        }
+
         if (rollButton != null)
         {
             rollButton.onClick.AddListener(RollForButton);

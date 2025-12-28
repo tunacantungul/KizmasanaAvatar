@@ -412,7 +412,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 446120cdffd9e4242aa33255f78fd150, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Dice
-  rollButton: {fileID: 0}
+  rollButton: {fileID: 1503685480}
 --- !u!4 &506536119
 Transform:
   m_ObjectHideFlags: 0
@@ -956,7 +956,7 @@ MonoBehaviour:
   onValueChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_IsOn: 1
+  m_IsOn: 0
 --- !u!1 &1347469273
 GameObject:
   m_ObjectHideFlags: 0
@@ -1488,7 +1488,7 @@ MonoBehaviour:
   statusText: {fileID: 541499979}
   diceResultText: {fileID: 1593011070}
   scoreText: {fileID: 1347469275}
-  autoPlayToggle: {fileID: 1175956871}
+  autoPlayToggle: {fileID: 0}
 --- !u!1 &2005351644
 GameObject:
   m_ObjectHideFlags: 0

@@ -1,7 +1,5 @@
 using UnityEngine;
 
-using UnityEngine;
-
 public class Tile : MonoBehaviour
 {
     public enum PlayerType

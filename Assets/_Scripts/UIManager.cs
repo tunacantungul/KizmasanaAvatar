@@ -13,12 +13,13 @@ public class UIManager : MonoBehaviour
 
     void Start()
     {
-        _gameManager = FindObjectOfType<GameManager>();
+        _gameManager = FindFirstObjectByType<GameManager>();
         if (autoPlayToggle != null && _gameManager != null)
         {
             autoPlayToggle.onValueChanged.AddListener((isActive) => {
                 _gameManager.SetAutoPlay(isActive);
             });
+            autoPlayToggle.isOn = _gameManager.isAutoPlayActive;
         }
     }
 
