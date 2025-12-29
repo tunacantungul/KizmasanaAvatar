@@ -8,36 +8,27 @@ Welcome to **KizmasanaAvatar**! This project is a unique blend of classic board 
 
 Players navigate a digital board, competing against others in a turn-based format while enjoying a stylized, avatar-based environment reminiscent of classic web-based social games.
 
-## ⚠️ Important Note Regarding Assets
+## ⚠️ Note About Assets and Development Process
 
-Please be aware of the following limitations regarding the 3D assets in this repository:
+As part of the course scope, all 3D models and some 2D visual assets used in this project were created with the help of AI-based tools. During development, we primarily used **Meshy.ai** for 3D model generation and **Gemini** for supporting certain visual and content-related tasks.
 
-*   **AI Model Availability:** We utilized various AI generation tools (such as Meshy.ai) during the development of this project. Due to the limitations of free trial accounts used during creation, we were unable to download or export some of the generated models for the final build.
-*   **Poly Count:** As a result of the generation process, some of the models that are present exceed the optimized 10,000 polygon range.
+While these tools were helpful during early prototyping, we encountered limitations related to free/trial account usage. In particular, some generated 3D models could not be downloaded or exported when preparing the final repository. We explored alternative approaches and worked with the available resources, but as a result, some assets could not be included in their original or intended form.
 
-While the source files for some models may be missing or unoptimized, we have included screenshots from both the in-game view and the editor to demonstrate the project's visual style and intended design.
+Additionally, since several models were generated quickly for prototyping purposes, some of the included assets may exceed the intended optimization target (approximately 10,000 polygons).
+
+To ensure the project remains reviewable and understandable, screenshots from both the Unity editor and in-game scenes are provided to demonstrate the intended visual style, asset usage, and overall design. The project is still under active development, and further improvements and optimizations are planned.
 
 ## 🚀 Future Roadmap: AR Implementation
 
-*   **Augmented Reality (AR):** Without further ado, we are currently working on implementing AR features. Soon, you will be able to project the game board onto your table and watch your avatars move around in your actual physical space.
-
-
+* **Augmented Reality (AR):** We are currently working on implementing AR features. The goal is to project the game board onto a real-world surface and allow players to see avatars and pawns move within a physical environment.
 
 ## 📸 Screenshots
 
-*(Add your screenshots here. You can drag and drop them into your GitHub repository issue or file editor, or link them relative to a `/screenshots` folder)*
-
-> *[Insert Screenshot 1: In-Game Board View]*
-
-> *[Insert Screenshot 2: Editor View]*
+Project screenshots are available in the **Screenshots** folder of this repository.  
+These include both in-game views and Unity editor screenshots that showcase the current state of the project, visual direction, and implemented features.
 
 ## 🛠️ Getting Started
 
-*(Add instructions here on how to clone and run your project)*
-
-1.  Clone the repository:
-    ```bash
-    git clone https://github.com/tunacantungul/KizmasanaAvatar.git
-    ```
-2.  Open the project in your game engine.
-3.  Load the main scene to explore the board and mechanics.
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/tunacantungul/KizmasanaAvatar.git
